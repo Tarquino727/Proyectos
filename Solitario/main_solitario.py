@@ -3,6 +3,11 @@ import tkinter as tk
 from PIL import Image, ImageTk # Pillow permite cargar imágenes
 
 
+# Crear ventana principal
+ventana = tk.Tk()
+ventana.title("Solitario")
+ventana.geometry("1024x768")
+
 # Definimos los valores y palos de las cartas
 valores = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
 palos = ['♥', '♦', '♣', '♠']
@@ -33,6 +38,9 @@ for i in range(7):
 # Mazo: Las cartas restantes después del reparto
 mazo = baraja
 descarte = [] # Pila de cartas robadas
+
+# Cargar imagen del reverso de las cartas
+imagen_reverso=Image.open("").resize((80,120))
 
 # Mostrar columnas iniciales
 print("Tablero inicial:")
