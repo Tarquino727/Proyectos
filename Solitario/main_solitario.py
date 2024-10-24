@@ -1,7 +1,13 @@
 import random
 import tkinter as tk
 from PIL import Image, ImageTk # Pillow permite cargar imágenes
+import os
 
+# Ruta relativa de la imagen reverso
+ruta_imagen = "Solitario/Imagenes/Reverso.jpg"
+
+# Asegurarse de la ruta
+print(os.path.abspath(ruta_imagen))
 
 # Crear ventana principal
 ventana = tk.Tk()
@@ -40,36 +46,56 @@ mazo = baraja
 descarte = [] # Pila de cartas robadas
 
 # Cargar imagen del reverso de las cartas
-imagen_reverso=Image.open("").resize((80,120))
+imagen_reverso=Image.open(ruta_imagen).resize((80,120))
+imagen_reverso=ImageTk.PhotoImage(imagen_reverso)
 
-# Mostrar columnas iniciales
-print("Tablero inicial:")
-for i, columna in enumerate(columnas):
-    print(f"Columna {i+1}: {columna}")
-print(f"Mazo: {len(mazo)} cartas\n")
+# Actualizar las columnas en la interfaz
 
-# Robar una carta del mazo del mazo al descarte
+def actualizar_tablero():
+    for i, columna in enumerate(columnas):
+        for j, carta in enumerate(columna):
+            if carta == ('X','X'):
+                label=tk.Label(frame_columnas[i], image=imagen_reverso)
+            else:
+                label=tk.Label(frame_columnas[i], text=f"{carta[0]}{carta[1]}")
+            label.grid(row=j, column=0, pady=5)
+
+# Crear frame para las columnas
+
+frame_columnas=[tk.Frame(ventana) for _ in range(7)]
+for i, frame in enumerate(frame_columnas):
+    frame_columnas[i].grid(row=0, column=i, padx=10)
+
+# Botón para robar una carta del mazo
 
 def robar_carta():
-    global mazo, descarte
+    if mazo:
+        carta = mazo.pop()
+        descarte.append(carta)
+        actualizar_descarte()
+    else:
+        print("El mazo está vacío.")
 
-    # Si el mazo está vacío, intentamos reciclar las cartas del descarte
-    if not mazo:
-        if len(descarte) > 1:  # Deben haber al menos 2 cartas en el descarte para reciclar
-            print("\nReciclando el mazo...")
-            # Mover todas las cartas menos la última al mazo
-            mazo = descarte[:-1]
-            descarte = [descarte[-1]]  # La última carta se queda visible
-            random.shuffle(mazo)  # Barajamos el nuevo mazo
-        else:
-            print("\nEl mazo y el descarte están vacíos. No hay más cartas.")
-            return  # Salimos de la función para evitar seguir intentando robar
+# Crear frame para el mazo y el descarte
 
-    # Robamos una carta del mazo y la ponemos en el descarte
-    carta = mazo.pop()
-    descarte.append(carta)
-    print(f"\nCarta robada: {carta}")
+frame_mazo =tk.Frame(ventana, bg='green')
+frame_mazo.grid(row=0, column=0, columnspan=2, pady=10,padx=10)
 
+boton_mazo = tk.Button(frame_mazo, image=imagen_reverso, command=robar_carta)
+boton_mazo.grid(row=0, column=0)
+
+# Mostrar la última carta robada en el descarte
+label_descarte = tk.Label(frame_mazo, text="Descarte: ", bg='green')
+label_descarte.grid(row=0,column=1, padx=10)
+
+# Descartar cartas
+
+def actualizar_descarte():
+    if descarte:
+        carta = descarte[-1]
+        label_descarte.config(text=f"{carta[0]}{carta[1]}")
+    else:
+        label_descarte.config(text="Descarte: ")
 
 # Verificar 2 cartas sean colores opuestos
 
@@ -215,12 +241,10 @@ def verificar_victoria():
         return True
     return False
 
-mover_carta(0,2)
-mover_secuencia(0,0,2)
-robar_carta()
-mover_carta_desde_descarte(2)
+# Mostrar el tablero inicial
 
-# Mostramos las columnas después del movimiento
-print("\nTablero después del movimiento:")
-for i, columna in enumerate(columnas):
-    print(f"Columna {i + 1}: {columna}")
+actualizar_tablero()
+
+# Ejecutar la ventana
+
+ventana.mainloop()
