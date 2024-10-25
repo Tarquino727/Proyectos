@@ -12,7 +12,7 @@ print(os.path.abspath(ruta_imagen))
 # Crear ventana principal
 ventana = tk.Tk()
 ventana.title("Solitario")
-ventana.geometry("1024x768")
+ventana.geometry("960x768")
 
 # Definimos los valores y palos de las cartas
 valores = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
@@ -53,18 +53,26 @@ imagen_reverso=ImageTk.PhotoImage(imagen_reverso)
 
 def actualizar_tablero():
     for i, columna in enumerate(columnas):
+        # Primero se limpia el frame de la columna antes de dibujar
+        for widget in frame_columnas[i].winfo_children():
+            widget.destroy()
+        
+        # Dibujar las cartas con desplazamiento vertical
         for j, carta in enumerate(columna):
             if carta == ('X','X'):
+                # Carta oculta
                 label=tk.Label(frame_columnas[i], image=imagen_reverso)
-            else:
+            else: 
+                # Carta visible
                 label=tk.Label(frame_columnas[i], text=f"{carta[0]}{carta[1]}")
-            label.grid(row=j, column=0, pady=5)
+            # Superposición cartas
+            label.place(x=0, y=j*30)
 
 # Crear frame para las columnas
 
-frame_columnas=[tk.Frame(ventana) for _ in range(7)]
+frame_columnas=[tk.Frame(ventana, width=80, height=600) for _ in range(7)]
 for i, frame in enumerate(frame_columnas):
-    frame_columnas[i].grid(row=0, column=i, padx=10)
+    frame.grid(row=1, column=i, padx=10, pady=10)
 
 # Botón para robar una carta del mazo
 
@@ -78,8 +86,8 @@ def robar_carta():
 
 # Crear frame para el mazo y el descarte
 
-frame_mazo =tk.Frame(ventana, bg='green')
-frame_mazo.grid(row=0, column=0, columnspan=2, pady=10,padx=10)
+frame_mazo =tk.Frame(ventana, bg='green', bd=2, relief='solid')
+frame_mazo.grid(row=0, column=0, pady=10,padx=10, sticky='nw')
 
 boton_mazo = tk.Button(frame_mazo, image=imagen_reverso, command=robar_carta)
 boton_mazo.grid(row=0, column=0)
