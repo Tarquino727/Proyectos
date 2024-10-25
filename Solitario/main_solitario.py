@@ -52,6 +52,15 @@ def seleccionar_carta(columna, indice):
         carta_seleccionada = (columna, indice)
         print(f"Carta seleccionada: {columnas[columna][indice]}")
 
+# Botón para robar una carta del mazo
+
+def robar_carta():
+    if mazo:
+        carta = mazo.pop()
+        descarte.append(carta)
+        actualizar_descarte()
+    else:
+        print("El mazo está vacío.")
 
 # Actualizar las columnas en la interfaz
 
@@ -79,8 +88,10 @@ def actualizar_tablero():
 frame_columnas=[tk.Frame(ventana, width=80, height=600) for _ in range(7)]
 for i, frame in enumerate(frame_columnas):
     frame.grid(row=1, column=i, padx=10, pady=10)
-    # Hacer clic en la columna para mover la carta seleccionada
-    frame.bind("<Button-1>", lambda e, destino=i: mover_carta(destino))
+    # Hacer clic izquierdo en la columna para mover la carta seleccionada
+    frame.bind("<Button-1>", lambda e, destino=i: gestionar_movimiento(destino, tipo='columna'))
+
+
 
 
 # Crear frame para el mazo y el descarte
@@ -88,22 +99,12 @@ for i, frame in enumerate(frame_columnas):
 frame_mazo =tk.Frame(ventana, bg='green', bd=2, relief='solid')
 frame_mazo.grid(row=0, column=0, pady=10,padx=10, sticky='nw')
 
-boton_mazo = tk.Button(frame_mazo, image=imagen_reverso, command=lambda: robar_carta)
+boton_mazo = tk.Button(frame_mazo, image=imagen_reverso, command=robar_carta)
 boton_mazo.grid(row=0, column=0)
 
 # Mostrar la última carta robada en el descarte
 label_descarte = tk.Label(frame_mazo, text="Descarte: ", bg='green')
 label_descarte.grid(row=0,column=1, padx=10)
-
-# Botón para robar una carta del mazo
-
-def robar_carta():
-    if mazo:
-        carta = mazo.pop()
-        descarte.append(carta)
-        actualizar_descarte()
-    else:
-        print("El mazo está vacío.")
 
 # Crear frames para las fundaciones (una por palo)
 frame_fundaciones = [tk.Frame(ventana, width=80, height=120, bg='white', bd=2, relief='solid') for _ in range(4)]
@@ -111,6 +112,12 @@ frame_fundaciones = [tk.Frame(ventana, width=80, height=120, bg='white', bd=2, r
 #Posicionarlas en la parte superior al lado del mazo
 for i, frame in enumerate(frame_fundaciones):
     frame.grid(row=0, column=i+3, padx=10, pady=10)
+
+    # Asociar cada frame a su palo correspondiente
+    palo = palos[i]
+
+    # Hacer clic izquierdo para mover del descarte o columna a fundaciones
+    frame.bind("<Button-1>", lambda e, p=palo: gestionar_movimiento(p, tipo='fundacion'))
 
 # Descartar cartas
 
@@ -185,6 +192,8 @@ def mover_secuencia(origen, indice_inicial, destino):
     # Si quedan cartas ocultas en la columna de orige, se descubre la última carta
     if columnas[origen] and columnas[origen][-1] == ('X', 'X'):
         columnas[origen][-1] = baraja.pop()
+    
+    actualizar_tablero()
 
 # Verificar que se pueda colocar la carta en la columna destino
 
@@ -218,6 +227,11 @@ def mover_carta(destino):
     columnas[origen]= columnas[origen][:indice]
     columnas[destino].extend(carta_a_mover)
     carta_seleccionada = None
+
+    # Destapar la última fila
+    if columnas[origen] and columnas[origen][-1] == ('X', 'X'):
+        columnas[origen][-1] = mazo.pop()
+    
     actualizar_tablero()
 
 # Mueve la carta del descarte a una columna si es válido
@@ -241,11 +255,13 @@ def mover_carta_desde_descarte(destino):
     # Movimiento válido: Quitamos la carta del descarte y la agregamos a la columna destino
     descarte.pop()
     columnas[destino].append(carta_a_mover)
+    actualizar_descarte()
+    actualizar_tablero()
     print(f"\nMovimiento exitoso: {carta_a_mover} -> Columna {destino + 1}")
 
 # Mueve una carta desde donde sea a la fundación correspondiente
 
-def mover_a_fundacion(origen='descarte',columna=None):
+def mover_a_fundacion(origen='descarte',columna=None, palo=None):
     if origen == 'descarte':
         if not descarte:
             print("\nNo hay cartas en el descarte.")
@@ -260,8 +276,12 @@ def mover_a_fundacion(origen='descarte',columna=None):
         print("\nMovimiento inválido.")
         return
     
+    # Verifica si la carta se puede mover a la fundacion correspondiente
+    if palo is None:
+        print("\nMovimiento inválido: La carta no coincide con la fundación.")
+        return
+
     # Verifica si la carta se puede mover a la fundación correspondiente
-    palo = carta[1]
     fundacion= fundaciones[palo]
 
     if not fundacion and carta[0] == 'A': # Solo un As puede iniciar una fundación
@@ -270,6 +290,7 @@ def mover_a_fundacion(origen='descarte',columna=None):
         print(f"\nMovimiento exitoso: {carta} -> Fundación {palo}")
     elif fundacion and valores.index(carta[0]) == valores.index(fundacion[-1][0])+1:
         (descarte if origen == 'descarte' else columnas[columna]).pop()
+        descarte.pop()
         fundacion.append(carta)
         print(f"\nMovimiento exitoso: {carta} -> Fundación {palo}")
     else:
@@ -277,6 +298,30 @@ def mover_a_fundacion(origen='descarte',columna=None):
     
     # Actualizar las fundaciones después de cada movimiento 
     actualizar_fundaciones()
+    actualizar_descarte()
+    actualizar_tablero()
+    print(f"Movimiento exitoso: {carta} -> Fundación {palo}")
+
+    if verificar_victoria():
+        print("¡Felicidades! Has ganado el juego.")
+    
+# Gestionar el movimiento para tener todo en un solo clic
+
+def gestionar_movimiento(destino,tipo):
+    global carta_seleccionada
+
+    if descarte:
+        if tipo =='columna':
+            mover_carta_desde_descarte(destino)
+        elif tipo == 'fundacion':
+            mover_a_fundacion(origen='descarte', columna=None, palo=destino)
+    elif carta_seleccionada:
+        if tipo == 'columna':
+            mover_carta(destino)
+        elif tipo == 'fundacion':
+            mover_a_fundacion(origen='columna', columna=carta_seleccionada[0], palo=destino)
+    
+    carta_seleccionada = None
 
 # Condición de victoria
 
