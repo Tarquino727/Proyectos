@@ -1,15 +1,29 @@
+import pygame
 import random
-import tkinter as tk
-from PIL import Image, ImageTk # Pillow permite cargar imágenes
 import os
 
-# Ruta relativa de la imagen reverso
-ruta_imagen = "Solitario/Imagenes/Reverso.jpg"
+# Inicializar pygame
+pygame.init()
 
 # Crear ventana principal
-ventana = tk.Tk()
-ventana.title("Solitario")
-ventana.geometry("960x768")
+ANCHO, ALTO= 960,768
+pantalla = pygame.display.ser_mode((ANCHO,ALTO))
+pygame.display.set_caption("Solitario")
+
+# Definir colores
+VERDE = (0,128,0)
+
+# Ruta de imagenes
+
+RUTA_IMAGENES = "Solitario/Imagenes"
+
+# Función cargar imágenes
+
+def cargar_imagen(nombre, ancho=80, alto=120):
+    imagen = pygame.image.load(os.path.join(RUTA_IMAGENES,nombre)).convert_alpha()
+    return pygame.transform.scale(imagen,(ancho,alto))
+
+REVERSO = cargar_imagen("Reverso.png")
 
 # Definimos los valores y palos de las cartas
 valores = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
@@ -36,9 +50,56 @@ for i in range(7):
 mazo = baraja
 descarte = [] # Pila de cartas robadas
 
-# Cargar imagen del reverso de las cartas
-imagen_reverso=Image.open(ruta_imagen).resize((80,120))
-imagen_reverso=ImageTk.PhotoImage(imagen_reverso)
+# Control del arrastre
+carta_arrastrada = None
+offset_x, offset_y = 0,0
+
+# Dibujar la pantalla inicial
+
+def dibujar_tablero():
+    pantalla.fill(VERDE)
+
+    # Dibujar el mazo
+    if mazo:
+        pantalla.blit(REVERSO, (50,50))
+    else:
+        pygame.draw.rect(pantalla, (255, 255, 255),(50,50,80,120),2)
+    
+    # Dibujar el descarte
+
+    if descarte:
+        carta = descarte[-1]
+        dibujar_carta(carta, 150,50)
+    
+    # Dibujar las columnas
+
+    for i, columna in enumerate(columnas):
+        x = 50 + i*100
+        for j, carta in enumerate(columna):
+            y= 200 + j*30
+            if carta == ('X','X'):
+                pantalla.blit(REVERSO, (x,y))
+            else:
+                dibujar_carta(carta,x,y)
+    
+    # Dibujar las fundaciones
+
+    for i, (palo, cartas) in enumerate(fundaciones.items()):
+        x = 450 + i*100
+        if cartas:
+            dibujar_carta(cartas[-1], x, 50)
+        else:
+            pygame.draw.rect(pantalla, (255, 255, 255), (x, 50, 80, 120), 2)
+
+# Dibujar una carta específica
+
+def dibujar_carta(carta, x, y):
+    valor, palo = carta
+    texto = f"{valor}{palo}"
+    fuente = pygame.font.Font(None, 36)
+    superficie_texto = fuente.render(texto, True, (0, 0, 0))
+    pygame.draw.rect(pantalla, (255, 255, 255), (x, y, 80, 120))
+    pantalla.blit(superficie_texto, (x +10, y+40))
 
 # Variables globales para control de selección
 
@@ -55,96 +116,21 @@ def seleccionar_carta(columna, indice):
 # Botón para robar una carta del mazo
 
 def robar_carta():
-    if mazo:
+    global mazo, descarte
+
+    if not mazo:
+        if not descarte:
+            print("\nNo hay más cartas en el mazo ni en el descarte.")
+            return
+        # Rellena el mazo con el descarte (excepto la última carta)
+        mazo = descarte[:-1]
+        descarte = [descarte[-1]]
+        print("\nEl mazo ha sido recargado.")
+    else:
+        # Mueve una carta del mazo al descarte
         carta = mazo.pop()
         descarte.append(carta)
-        actualizar_descarte()
-    else:
-        print("El mazo está vacío.")
-
-# Actualizar las columnas en la interfaz
-
-def actualizar_tablero():
-    for i, columna in enumerate(columnas):
-        # Primero se limpia el frame de la columna antes de dibujar
-        for widget in frame_columnas[i].winfo_children():
-            widget.destroy()
-        
-        # Dibujar las cartas con desplazamiento vertical
-        for j, carta in enumerate(columna):
-            if carta == ('X','X'):
-                # Carta oculta
-                label=tk.Label(frame_columnas[i], image=imagen_reverso)
-            else: 
-                # Carta visible
-                label=tk.Label(frame_columnas[i], text=f"{carta[0]}{carta[1]}")
-                #Hacer la carta clickeable
-                label.bind("<Button-1>", lambda e, col=i, idx=j: seleccionar_carta(col, idx))
-            # Superposición cartas
-            label.place(x=0, y=j*30)
-
-# Crear frame para las columnas
-
-frame_columnas=[tk.Frame(ventana, width=80, height=600) for _ in range(7)]
-for i, frame in enumerate(frame_columnas):
-    frame.grid(row=1, column=i, padx=10, pady=10)
-    # Hacer clic izquierdo en la columna para mover la carta seleccionada
-    frame.bind("<Button-1>", lambda e, destino=i: gestionar_movimiento(destino, tipo='columna'))
-
-
-
-
-# Crear frame para el mazo y el descarte
-
-frame_mazo =tk.Frame(ventana, bg='green', bd=2, relief='solid')
-frame_mazo.grid(row=0, column=0, pady=10,padx=10, sticky='nw')
-
-boton_mazo = tk.Button(frame_mazo, image=imagen_reverso, command=robar_carta)
-boton_mazo.grid(row=0, column=0)
-
-# Mostrar la última carta robada en el descarte
-label_descarte = tk.Label(frame_mazo, text="Descarte: ", bg='green')
-label_descarte.grid(row=0,column=1, padx=10)
-
-# Crear frames para las fundaciones (una por palo)
-frame_fundaciones = [tk.Frame(ventana, width=80, height=120, bg='white', bd=2, relief='solid') for _ in range(4)]
-
-#Posicionarlas en la parte superior al lado del mazo
-for i, frame in enumerate(frame_fundaciones):
-    frame.grid(row=0, column=i+3, padx=10, pady=10)
-
-    # Asociar cada frame a su palo correspondiente
-    palo = palos[i]
-
-    # Hacer clic izquierdo para mover del descarte o columna a fundaciones
-    frame.bind("<Button-1>", lambda e, p=palo: gestionar_movimiento(p, tipo='fundacion'))
-
-# Descartar cartas
-
-def actualizar_descarte():
-    if descarte:
-        carta = descarte[-1]
-        label_descarte.config(text=f"{carta[0]}{carta[1]}")
-    else:
-        label_descarte.config(text="Descarte: ")
-
-# Actualizar fundaciones
-
-def actualizar_fundaciones():
-    # Recorrer cada palo y su correspondiente frame
-    for i, (palo, cartas) in enumerate(fundaciones.items()):
-        # Limpiar antes de actualizar
-        for widget in frame_fundaciones[i].winfo_children():
-            widget.destroy()
-        
-        if cartas: # Si ya hay cartas se muestra la última
-            carta= cartas[-1]
-            label = tk.Label(frame_fundaciones[i], text=f"{carta[0]}{carta[1]}")
-            label.pack()
-        else: # Si no hay cartas
-            label = tk.Label(frame_fundaciones[i], text=f"{palo}", fg='black')
-            label.pack()
-
+        print(f"\nHas robado la carta: {carta}")
 
 # Verificar 2 cartas sean colores opuestos
 
@@ -215,11 +201,10 @@ def mover_carta(destino):
     origen, indice = carta_seleccionada
     carta_a_mover = columnas[origen][indice:]
 
-    if not columnas[destino]: # Si la columna destino está vacía
-        if carta_a_mover[0][0] != 'K': # Solo se permite mover un rey
+    if not columnas[destino] and carta_a_mover[0][0] != 'K': # Solo se permite mover un rey
             print("Solo un Rey puede moverse a una columna vacía.")
             return
-    elif not permitido_mover(carta_a_mover[0], columnas[destino][-1]):
+    elif columnas[destino] and not permitido_mover(carta_a_mover[0], columnas[destino][-1]):
         print("Movimiento inválido.")
         return
     
@@ -231,8 +216,7 @@ def mover_carta(destino):
     # Destapar la última fila
     if columnas[origen] and columnas[origen][-1] == ('X', 'X'):
         columnas[origen][-1] = mazo.pop()
-    
-    actualizar_tablero()
+
 
 # Mueve la carta del descarte a una columna si es válido
 
@@ -243,20 +227,17 @@ def mover_carta_desde_descarte(destino):
     carta_a_mover = descarte[-1] # Carta del descarte
 
     # Si la columna de destino está vacía, solo se permite mover un Rey
-    if not columnas[destino]: 
-        if carta_a_mover[0] != 'K': 
+    if not columnas[destino] and carta_a_mover[0] != 'K': 
             print("\nMovimiento inválido: Solo un Rey puede moverse a una columna vacía.")
             return
     # Si la columna de destino no está vacía, verificamos el movimiento
-    elif not permitido_mover(carta_a_mover, columnas[destino][-1]):
+    elif columnas[destino] and not permitido_mover(carta_a_mover, columnas[destino][-1]):
         print("\nMovimiento inválido: La carta no encaja en la columna destino.")
         return
     
     # Movimiento válido: Quitamos la carta del descarte y la agregamos a la columna destino
     descarte.pop()
     columnas[destino].append(carta_a_mover)
-    actualizar_descarte()
-    actualizar_tablero()
     print(f"\nMovimiento exitoso: {carta_a_mover} -> Columna {destino + 1}")
 
 # Mueve una carta desde donde sea a la fundación correspondiente
@@ -296,10 +277,6 @@ def mover_a_fundacion(origen='descarte',columna=None, palo=None):
     else:
         print("\nMovimiento inválido: No se puede mover esa carta a la fundación.")
     
-    # Actualizar las fundaciones después de cada movimiento 
-    actualizar_fundaciones()
-    actualizar_descarte()
-    actualizar_tablero()
     print(f"Movimiento exitoso: {carta} -> Fundación {palo}")
 
     if verificar_victoria():
@@ -331,11 +308,55 @@ def verificar_victoria():
         return True
     return False
 
-# Mostrar el tablero inicial
 
-actualizar_tablero()
-actualizar_fundaciones()
+# Función principal del juego
 
-# Ejecutar la ventana
+def main():
+    global carta_arrastrada, offset_x, offset_y
 
-ventana.mainloop()
+    reloj = pygame.time.Clock()
+    ejecutando = True
+
+    while ejecutando:
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                ejecutando = False
+
+            elif evento.type == pygame.MOUSEBUTTONDOWN:
+                if mazo and pygame.Rect(50, 50, 80, 120).collidepoint(evento.pos):
+                    if mazo:
+                        carta= mazo.pop()
+                        descarte.append(carta)
+
+                # Verificar si una carta del tablero fue seleccionada
+
+                for i, columna in enumerate(columnas):
+                    x= 50+ i*100
+                    for j, carta in enumerate(columna):
+                        y= 200 + j*30
+                        if pygame.Rect(x,y,80,120).collidepoint(evento.pos):
+                            carta_arrastrada=(carta, i, j)
+                            offset_x = x- evento.pos[0]
+                            offset_y = y- evento.pos[1]
+                            seleccionar_carta(i,j)
+
+            elif evento.type == pygame.MOUSEBUTTONUP:
+                carta_arrastrada = None
+
+            elif evento.type == pygame.MOUSEMOTION:
+                if carta_arrastrada:
+                    carta, col, idx = carta_arrastrada
+                    x = evento.pos[0] + offset_x
+                    y = evento.pos[1] + offset_y
+                    dibujar_carta(carta, x, y)
+        
+        dibujar_tablero()
+        pygame.display.flip()
+        reloj.tick(60)
+
+    pygame.quit()
+
+# Ejecutar el juego
+
+if __name__ == "__main__":
+    main()
