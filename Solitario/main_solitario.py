@@ -29,6 +29,14 @@ REVERSO = cargar_imagen("Reverso.png")
 valores = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
 palos = ['♥', '♦', '♣', '♠']
 
+# Diccionario para traducir palos de simbolos a nombres
+nombres_palos = {
+    '♥':'Corazones',
+    '♦':'Diamantes', 
+    '♣':'trebol', 
+    '♠':'Picas'
+}
+
 # Fundaciones: 4 pilas vacías, una para cada palo
 fundaciones = {'♥': [], '♦': [], '♣': [], '♠': []}
 
