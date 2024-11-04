@@ -7,7 +7,7 @@ pygame.init()
 
 # Crear ventana principal
 ANCHO, ALTO= 960,768
-pantalla = pygame.display.ser_mode((ANCHO,ALTO))
+pantalla = pygame.display.set_mode((ANCHO,ALTO))
 pygame.display.set_caption("Solitario")
 
 # Definir colores
@@ -178,8 +178,6 @@ def mover_secuencia(origen, indice_inicial, destino):
     # Si quedan cartas ocultas en la columna de orige, se descubre la última carta
     if columnas[origen] and columnas[origen][-1] == ('X', 'X'):
         columnas[origen][-1] = baraja.pop()
-    
-    actualizar_tablero()
 
 # Verificar que se pueda colocar la carta en la columna destino
 
@@ -216,7 +214,6 @@ def mover_carta(destino):
     # Destapar la última fila
     if columnas[origen] and columnas[origen][-1] == ('X', 'X'):
         columnas[origen][-1] = mazo.pop()
-
 
 # Mueve la carta del descarte a una columna si es válido
 
