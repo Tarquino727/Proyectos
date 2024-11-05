@@ -17,14 +17,6 @@ VERDE = (0,128,0)
 
 RUTA_IMAGENES = "Solitario/Imagenes"
 
-# Función cargar imágenes
-
-def cargar_imagen(nombre, ancho=80, alto=120):
-    imagen = pygame.image.load(os.path.join(RUTA_IMAGENES,nombre)).convert_alpha()
-    return pygame.transform.scale(imagen,(ancho,alto))
-
-REVERSO = cargar_imagen("Reverso.png")
-
 # Definimos los valores y palos de las cartas
 valores = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
 palos = ['♥', '♦', '♣', '♠']
@@ -36,6 +28,27 @@ nombres_palos = {
     '♣':'trebol', 
     '♠':'Picas'
 }
+
+# Función cargar imágenes
+
+def cargar_imagen(nombre, ancho=80, alto=120):
+    imagen = pygame.image.load(os.path.join(RUTA_IMAGENES,nombre)).convert_alpha()
+    return pygame.transform.scale(imagen,(ancho,alto))
+
+REVERSO = cargar_imagen("Reverso.png")
+
+# Función para cargar cada carta específica con el nombre adecuado
+def cargar_imagen_carta(valor, palo, ancho=80, alto=120):
+    nombre_archivo=f"{nombres_palos[palo]}_{valor}.jpg"
+    imagen = pygame.image.load(os.path.join(RUTA_IMAGENES, nombre_archivo)).convert_alpha()
+    return pygame.transform.scale(imagen, (ancho, alto))
+    
+# Cargar todas las imágenes de las cartas en el diccionario
+imagenes_cartas={}
+
+for valor in valores:
+    for palo in palos:
+        imagenes_cartas[(valor, palo)] = cargar_imagen_carta(valor,palo)
 
 # Fundaciones: 4 pilas vacías, una para cada palo
 fundaciones = {'♥': [], '♦': [], '♣': [], '♠': []}
@@ -103,11 +116,13 @@ def dibujar_tablero():
 
 def dibujar_carta(carta, x, y):
     valor, palo = carta
-    texto = f"{valor}{palo}"
-    fuente = pygame.font.Font(None, 36)
-    superficie_texto = fuente.render(texto, True, (0, 0, 0))
-    pygame.draw.rect(pantalla, (255, 255, 255), (x, y, 80, 120))
-    pantalla.blit(superficie_texto, (x +10, y+40))
+    if carta == ('X','X'):
+        pantalla.blit(REVERSO,(x,y))
+    else:
+        # Obtiene la imagen de la carta desde el diccionario
+        imagen_carta = imagenes_cartas.get((valor, palo))
+        if imagen_carta:
+            pantalla.blit(imagen_carta, (x, y))
 
 # Variables globales para control de selección
 
@@ -329,9 +344,7 @@ def main():
 
             elif evento.type == pygame.MOUSEBUTTONDOWN:
                 if mazo and pygame.Rect(50, 50, 80, 120).collidepoint(evento.pos):
-                    if mazo:
-                        carta= mazo.pop()
-                        descarte.append(carta)
+                    robar_carta() # Robar una carta al hacer clic en el mazo
 
                 # Verificar si una carta del tablero fue seleccionada
 
