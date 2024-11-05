@@ -358,17 +358,35 @@ def main():
                             offset_y = y- evento.pos[1]
                             seleccionar_carta(i,j)
 
-            elif evento.type == pygame.MOUSEBUTTONUP:
-                carta_arrastrada = None
-
+            
             elif evento.type == pygame.MOUSEMOTION:
                 if carta_arrastrada:
-                    carta, col, idx = carta_arrastrada
+                    _, col, idx = carta_arrastrada
                     x = evento.pos[0] + offset_x
                     y = evento.pos[1] + offset_y
-                    dibujar_carta(carta, x, y)
-        
+                    dibujar_tablero() # Redibuja el tablero sin la carta arrastrada
+                    dibujar_carta(columnas[col][idx], x, y) # Dibuja la carta arrastrada en su posición actual
+            
+            elif evento.type == pygame.MOUSEBUTTONUP:
+                # Si se suelta una carta, intenta moverla
+                if carta_arrastrada:
+                    _, col, idx = carta_arrastrada
+                    carta_seleccionada = (col, idx)
+
+                    # Detectar el destino
+                    for i, columna in enumerate(columnas):
+                        x = 50 + i*100
+                        y = 200 + len(columna)*30 # Posición al final de la columna
+                        if pygame.Rect(x, y, 80, 120).collidepoint(evento.pos):
+                            gestionar_movimiento(i, 'columna') # Intentar mover a la columna
+                            break
+
+                    # Limpia la selección
+                    carta_arrastrada = None
+                    carta_seleccionada = None
+        # Dibujar el tablero            
         dibujar_tablero()
+        # Actualizar la pantalla
         pygame.display.flip()
         reloj.tick(60)
 
